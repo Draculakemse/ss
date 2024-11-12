@@ -1517,22 +1517,6 @@ end)
 
 --------------- Main Task ---------------
 
------ Auto Baby Tasks -----
-spawn(function()
-    _G.Status = "Script Started..."
-    while task.wait(5) do
-        local Fsys = require(game.ReplicatedStorage:WaitForChild("Fsys")).load
-        local Check = Fsys("ClientData").get_server(game:GetService("Players").LocalPlayer, "char_wrapper")
-        if Check and Check.ailments_monitor and Check.ailments_monitor.ailments then 
-            for _,v in pairs(Fsys("ClientData").get_server(game:GetService("Players").LocalPlayer, "char_wrapper").ailments_monitor.ailments) do 
-                for x,d in pairs(v) do 
-                    game.ReplicatedStorage.API["MonitorAPI/AddRate"]:InvokeServer(tostring(d),100) 
-                end
-            end
-        end
-    end
-end)
-
 ---- Auto Quest Claim + Auto Golden Jaguar ---
 spawn(function()
     while task.wait(60) do
