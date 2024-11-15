@@ -269,12 +269,11 @@ function SetStatus()
     end
     if DifBucks > 0 then Bucks = Bucks .. " (+"..DifBucks..")" end
 
-    TextLabel.Text = [[<font color="rgb(255,180,180)">]]..game.Players.LocalPlayer.Name..[[</font> - RoloxBotV3.21
+    TextLabel.Text = [[<font color="rgb(255,180,180)">]]..game.Players.LocalPlayer.Name..[[</font> - LALSEW
     Status: <font color="rgb(187, 166, 255)"> ]].._G.Status..[[ </font>
     Potions: <font color="rgb(252, 207, 71)">]]..Potions..[[</font>
     Bucks: <font color="rgb(0, 191, 41)">]]..Bucks..[[</font>
     Event Currency: <font color="rgb(237, 63, 14)">]]..EventCurrency..[[</font>
-    Stamps Collected: <font color="rgb(237, 63, 14)">]]..Fsys("ClientData").get_data()[Player.Name]["ddlm_2024_manager"]["stamps_collected"]..[[</font>
     Total Time: <font color="rgb(137, 41, 255)">]]..disp_time(TimeA)..[[</font>
 
     <font color="rgb(130, 255, 228)">Press Q to toggle</font>
@@ -300,7 +299,7 @@ local args = {
 game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("TeamAPI/ChooseTeam"):InvokeServer(unpack(args))
 
 repeat wait() until game.Players.LocalPlayer.Character
-repeat wait() until game.Players.LocalPlayer.Character:WaitForChild("HumanoidRootPart")
+repeat wait() until game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 repeat wait() until game:GetService("Players").LocalPlayer.Character and workspace.Camera.CameraSubject == game:GetService("Players").LocalPlayer.Character:WaitForChild("Humanoid")
 local HRP = Player.Character.HumanoidRootPart
 --game.Players.LocalPlayer.Character:FindFirstChild("Humanoid").WalkSpeed = 0 -- Disable Walkspeed
@@ -694,7 +693,6 @@ function ClaimLureBeta()
         [5] = workspace:WaitForChild("PlayerCharacters"):WaitForChild(game.Players.LocalPlayer.Name)
     }
     game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("HousingAPI/ActivateFurniture"):InvokeServer(unpack(args))
-    LureFeedBeta()
 end
 
 spawn(function()
@@ -704,6 +702,7 @@ spawn(function()
     end
     while task.wait(15) do
         pcall(ClaimLureBeta)
+        pcall(LureFeedBeta)
     end
 end)
 
@@ -778,8 +777,8 @@ end
 local SetLocation = function(A, B, C)
     local O = get_thread_identity()
     set_thread_identity(2)
-    require(game.ReplicatedStorage.ClientModules.Core.InteriorsM.InteriorsM).enter(A, B, C)
-    --SetLocationTP(A, B, C)
+    --require(game.ReplicatedStorage.ClientModules.Core.InteriorsM.InteriorsM).enter(A, B, C)
+    SetLocationTP(A, B, C)
     set_thread_identity(O)
 end
 
@@ -787,7 +786,7 @@ local GoToMainMap = function()
     --spawn(function()
         --require(game.ReplicatedStorage.ClientModules.Core.InteriorsM.InteriorsM).enter("MainMap", "Neighborhoodd/MainDoor", {})
         game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart").Anchored = true
-        SetLocation("MainMap", "Neighborhood/MainDoor", {["spawn_cframe"] = CFrame.new(-248.025375, 1, -1746.41724, -0.998434782, -7.92188573e-08, -0.0559278913, -7.50130056e-08, 1, -7.73006334e-08, 0.0559278913, -7.29843208e-08, -0.998434782)})
+        SetLocation("MainMap", "Neighborhood/MainDoor", {["spawn_cframe"] = CFrame.new(-248.025375, -50, -1746.41724, -0.998434782, -7.92188573e-08, -0.0559278913, -7.50130056e-08, 1, -7.73006334e-08, 0.0559278913, -7.29843208e-08, -0.998434782)})
         if workspace:FindFirstChildWhichIsA("Terrain") then workspace.Terrain:Clear() end
         repeat task.wait() until IsInMainMap()
         CreateTempPart()
@@ -990,7 +989,7 @@ function CampingTask()
     
     task.wait(10)
     print("Tping to Camping")
-    HRP.CFrame = CFrame.new(-27,25,-1056) -- set 25
+    HRP.CFrame = CFrame.new(-27,20,-1056) -- set 25
     game.Players.LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Landed)
     CreateTempPart()
     EquipLastPet()
@@ -1006,7 +1005,7 @@ function BeachPartyTask()
     
     task.wait(10)
     print("Tping to Beach")
-    HRP.CFrame = CFrame.new(-667, 25, -1421) -- set 25
+    HRP.CFrame = CFrame.new(-667, 20, -1421) -- set 25
     game.Players.LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Landed)
     CreateTempPart()
     EquipLastPet()
@@ -1044,8 +1043,10 @@ end
 function RideTask()
     GoToMainMap()
     CreateTempPart()
+    task.wait(5)
     EquipLastPet()
-    task.wait(7)
+    task.wait(2)
+
     bikeId = EquipBike()
 
     if bikeId then
@@ -1079,8 +1080,9 @@ end
 function WalkTask()
     GoToMainMap()
     CreateTempPart()
+    task.wait(5)
     EquipLastPet()
-    task.wait(8)
+    task.wait(2)
 
     oldCFrame = HRP.CFrame + Vector3.new(0, 7, 0)
     HRP.CFrame = oldCFrame
@@ -1512,6 +1514,8 @@ spawn(function()
     end
 end)
 
+--------------- Main Task ---------------
+
 ----- Auto Baby Tasks -----
 spawn(function()
     _G.Status = "Script Started..."
@@ -1523,20 +1527,6 @@ spawn(function()
                 for x,d in pairs(v) do 
                     game.ReplicatedStorage.API["MonitorAPI/AddRate"]:InvokeServer(tostring(d),100) 
                 end
-            end
-        end
-    end
-end)
-
----- Auto Quest Claim + Auto Golden Jaguar ---
-spawn(function()
-    while task.wait(60) do
-        for i, v in pairs(require(game.ReplicatedStorage:WaitForChild("Fsys")).load("ClientData").get("quest_manager")["quests_cached"]) do
-            if v["steps_completed"] >= 1 then
-                game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("QuestAPI/ClaimQuest"):InvokeServer(v["unique_id"])
-                task.wait()
-            elseif v["entry_name"] == "ddlm_2024_stamp_collect" then
-                game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("DdlmAPI/ClaimStamp"):FireServer()
             end
         end
     end
@@ -1609,6 +1599,22 @@ function ChooseMysteryTask(mysteryID)
     end
     getgenv().MysteryChoosing = false
 end
+
+spawn(function()
+    while task.wait(0.1) do
+        pcall(function()
+        if HRP.CFrame.Y < -250 then
+            print("Safety Net Utilized!")
+            CreateTempPart()
+            HRP.CFrame = CFrame.new(-248.025375, -50, -1746.41724, -0.998434782, -7.92188573e-08, -0.0559278913, -7.50130056e-08, 1, -7.73006334e-08, 0.0559278913, -7.29843208e-08, -0.998434782)
+            CreateTempPart()
+            task.wait(0.5)
+            GoToMainMap()
+            repeat task.wait(1) until HRP.CFrame > -250
+        end
+        end)
+    end
+end)
 
 print("Creating Temp Part")
 CreateTempPart()
@@ -1688,18 +1694,18 @@ while task.wait(1) do
                 spawn(function()
                     pcall(ToiletTask)
                 end)                    
-            elseif taskName == "sick" then
-                print("Sick task appeared.")
-                _G.Status = "Completing Sick Task..."
-                spawn(function()
-                    pcall(SickTask)
-                end)
-            elseif taskName == "ride" and hasVehicle() then
-                print("Ride task appeared.")
-                _G.Status = "Completing Ride Task..."
-                spawn(function()
-                    RideTask()
-                end)
+            --elseif taskName == "sick" then
+            --    print("Sick task appeared.")
+            --    _G.Status = "Completing Sick Task..."
+            --    spawn(function()
+            --        pcall(SickTask)
+            --    end)
+            --elseif taskName == "ride" and hasVehicle() then
+            --    print("Ride task appeared.")
+            --    _G.Status = "Completing Ride Task..."
+            --    spawn(function()
+            --        RideTask()
+            --    end)
             elseif taskName == "walk" then
                 print("Walk task appeared.")
                 _G.Status = "Completing Walk Task..."
@@ -1724,10 +1730,10 @@ while task.wait(1) do
             
             --print("Waiting for Task Completion!")
             startTime = tick()
-            if taskName == "walk" or taskName == "ride" then
+            if taskName == "walk" then --or taskName == "ride" then
                 task.wait(15)
                 repeat task.wait(1) until not CheckTaskExist(taskName) or (tick() - startTime >= 90)
-            elseif not taskName:match("mystery") then
+            elseif (not taskName:match("mystery")) and (taskName ~= "ride") and (taskName ~= "sick") then
                 local timeout = 60
                 repeat
                     wait(1)
@@ -1735,13 +1741,6 @@ while task.wait(1) do
                 until not CheckTaskExist(taskName) or timeout <= 0
             end
 
-            if not IsInMainMap() then
-                GoToMainMap()
-            else
-                HRP.CFrame = CFrame.new(-248.025375, 1, -1746.41724, -0.998434782, -7.92188573e-08, -0.0559278913, -7.50130056e-08, 1, -7.73006334e-08, 0.0559278913, -7.29843208e-08, -0.998434782)
-                game.Players.LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Landed)
-                CreateTempPart()
-            end
             task.wait(3)
 
             RS.API["AdoptAPI/MakeBabyJumpOutOfSeat"]:FireServer(Fsys("ClientData").get("char_wrapper")["char"])
