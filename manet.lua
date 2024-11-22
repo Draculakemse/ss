@@ -1,3 +1,9 @@
+--[[
+_G.AgingPotionMode = true
+_G.EggHatchMode = false
+EggName = "Garden Egg"
+]]
+
 repeat task.wait(1) until game:IsLoaded()
 
 if not _G.AgingPotionMode and not _G.EggHatchMode then
@@ -23,6 +29,7 @@ local RouterClient = require(RS.ClientModules.Core:WaitForChild("RouterClient"):
 local Main_Menu = require(RS.ClientModules.Core.UIManager.Apps.MainMenuApp)
 local Player = game:GetService("Players").LocalPlayer
 local VirtualInputManager = game:GetService("VirtualInputManager")
+local LiveOpsMapSwap = require(game:GetService("ReplicatedStorage").SharedModules.Game.LiveOpsMapSwap)
 
 for i,v in pairs(getconnections(game.Players.LocalPlayer.Idled)) do
   v:Disable()
@@ -31,7 +38,6 @@ end
 for i, v in pairs(debug.getupvalue(RouterClient.init, 7)) do
     v.Name = i
 end
-
 
 
 ---------------- Warn Control ---------------------------------
@@ -193,10 +199,10 @@ if game:GetService("Players").LocalPlayer.PlayerGui.TransitionsApp:FindFirstChil
     game:GetService("Players").LocalPlayer.PlayerGui.TransitionsApp:FindFirstChild("Whiteout").Visible = false 
 end
 --------- Rolox OVerlay Screen
-local ScreenGui = Instance.new("ScreenGui")
-local Frame = Instance.new("Frame")
-local Frame_2 = Instance.new("Frame")
-local TextLabel = Instance.new("TextLabel")
+ScreenGui = Instance.new("ScreenGui")
+Frame = Instance.new("Frame")
+Frame_2 = Instance.new("Frame")
+TextLabel = Instance.new("TextLabel")
 
 --Properties:
 
@@ -254,16 +260,14 @@ end)
 _G.Status = "Loading..."
 StartPotions = tonumber((function() local t={} for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.food)do if v.id=="pet_age_potion"then table.insert(t,i)end end return #t end)())
 StartBucks = ClientData.get_data()[Player.Name].money
+OldDifPots = 0
+OldDifPotTime = os.time()
+getgenv().StartTimeAC = os.time()
 function SetStatus()
-    if not TimeA then
-        TimeA = 1
-    else
-        TimeA = TimeA + 1
-    end
     Potions = tostring((function() local t={} for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.food)do if v.id=="pet_age_potion"then table.insert(t,i)end end return #t end)())
     EventCurrency = (ClientData.get_data()[game.Players.LocalPlayer.Name][require(game:GetService("ReplicatedStorage").SharedModules.SharedDB.AltCurrencyData)["name"]] or 0)
     Bucks = ClientData.get_data()[Player.Name].money
-
+    
     DifPotion = tonumber(Potions) - StartPotions
     DifBucks = ClientData.get_data()[Player.Name].money - StartBucks
 
@@ -272,12 +276,29 @@ function SetStatus()
     end
     if DifBucks > 0 then Bucks = Bucks .. " (+"..DifBucks..")" end
 
-    TextLabel.Text = [[<font color="rgb(255,180,180)">]]..game.Players.LocalPlayer.Name..[[</font> - ASED
+    if _G.AgingPotionMode then
+        if DifPotion > OldDifPots then
+            OldDifPots = DifPotion
+            OldDifPotTime = os.time()
+        else
+            if (os.time() - OldDifPotTime >= 7200) and (DifPotion > 0) and (DifPotion / math.floor((os.time() - StartTimeAC)/60/60) < 1) then
+                RequestWebhook("Shutting down due to no pots in past 2 hours")
+                game:Shutdown()
+            end
+        end
+    end
+
+    getgenv().Stats = {
+        Bucks = DifBucks,
+        Potions = DifPotion
+    }
+
+    TextLabel.Text = [[<font color="rgb(255,180,180)">]]..game.Players.LocalPlayer.Name..[[</font> - 00009
     Status: <font color="rgb(187, 166, 255)"> ]].._G.Status..[[ </font>
     Potions: <font color="rgb(252, 207, 71)">]]..Potions..[[</font>
     Bucks: <font color="rgb(0, 191, 41)">]]..Bucks..[[</font>
     Event Currency: <font color="rgb(237, 63, 14)">]]..EventCurrency..[[</font>
-    Total Time: <font color="rgb(137, 41, 255)">]]..disp_time(TimeA)..[[</font>
+    Total Time: <font color="rgb(137, 41, 255)">]]..disp_time(os.time() - StartTimeAC)..[[</font>
 
     <font color="rgb(130, 255, 228)">Press Q to toggle</font>
     ]]
@@ -349,6 +370,22 @@ function findPetName(PetID)
     return nil
 end
 
+function findPetID(petName)
+    for _, entry in pairs(require(game:GetService("ReplicatedStorage").ClientDB.Inventory.InventoryDB).pets) do
+        if type(entry) == "table" and string.lower(entry.name) == string.lower(petName) then
+            return entry.id
+        end
+    end
+    return nil
+end
+
+function IsInInv(petUnique)
+    for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.pets) do 
+        if v.unique == petUnique then return true end
+    end
+    return false
+end
+
 function RequestWebhook(Desc) 
     local WebhookURL = "https://discord.com/api/webhooks/1273206813290135608/p4Tz5ZFSnh4alA6iv1c760FKOyum9mTarQERdFOzLmxje747Phh_c2tXqYcdCKI_BLlV"
     local Request = http_request or request or HttpPost or syn.request
@@ -400,10 +437,12 @@ function GetMainMap()
 end
 
 function EquipLastPet()
-    RS.API:WaitForChild("ToolAPI/Unequip"):InvokeServer(ClientData.get_data()[game.Players.LocalPlayer.Name].last_equipped_pets[1])
-    task.wait(0.25)
-    RS.API:WaitForChild("ToolAPI/Equip"):InvokeServer(ClientData.get_data()[game.Players.LocalPlayer.Name].last_equipped_pets[1])
-    task.wait(1)
+    if IsInInv(ClientData.get_data()[game.Players.LocalPlayer.Name].last_equipped_pets[1]) then
+        RS.API:WaitForChild("ToolAPI/Unequip"):InvokeServer(ClientData.get_data()[game.Players.LocalPlayer.Name].last_equipped_pets[1])
+        task.wait(0.25)
+        RS.API:WaitForChild("ToolAPI/Equip"):InvokeServer(ClientData.get_data()[game.Players.LocalPlayer.Name].last_equipped_pets[1])
+        task.wait(1)
+    end
 end
 
 function CheckExistwID(id)
@@ -420,7 +459,7 @@ end
 function GetEggAmount()
     EggsInAcc = {}
     for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.pets) do
-        if v.id == EggName then
+        if v.id == findPetID(EggName) then
             table.insert(EggsInAcc, i)
         end
     end
@@ -430,20 +469,25 @@ end
 function GetEgg()
     print("Get Egg Function Called")
     if GetEggAmount() == 0 then
-        RS.API["ShopAPI/BuyItem"]:InvokeServer("pets", EggName, {})
+        RS.API["ShopAPI/BuyItem"]:InvokeServer("pets", findPetID(EggName), {})
         for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.pets) do
-            if v.id == EggName then        
+            if v.id == findPetID(EggName) then        
                 return i
             end
         end
     elseif GetEggAmount() > 0 then
         for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.pets) do
-            if v.id == EggName then        
+            if v.id == findPetID(EggName) then        
                 return i
             end
         end
     end
-end             
+end   
+
+function EquipEgg()
+    game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("ToolAPI/Unequip"):InvokeServer(GetEgg())
+    game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("ToolAPI/Equip"):InvokeServer(GetEgg())
+end
 
 if _G.AgingPotionMode then
     print("== Selected Mode : Aging Potion ==")
@@ -503,7 +547,7 @@ elseif _G.EggHatchMode then
         if Bucks > 750 then
             RS.API["ShopAPI/BuyItem"]:InvokeServer("pets", EggName, {})
             for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.pets) do
-                if v.id == EggName then        
+                if v.id == findPetID(EggName) then        
                     table.insert(EggsInAcc, i)
                 end
             end      
@@ -512,11 +556,11 @@ elseif _G.EggHatchMode then
                 if v.id ~= "practice_dog" then    
                     table.insert(Pets, i)
                 end
-            end      
+            end
+            MainPet = RoT(Pets)
+            _G.EggHatchMode = false
+            _G.AgingPotionMode = true    
         end
-        MainPet = RoT(Pets)
-        _G.EggHatchMode = false
-        _G.AgingPotionMode = true  
     end  
 end
 
@@ -590,46 +634,27 @@ if _G.AgingPotionMode then
 end
 
 if _G.EggHatchMode then
-    function EquipEgg()
-        game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("ToolAPI/Unequip"):InvokeServer(GetEgg())
-        game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("ToolAPI/Equip"):InvokeServer(GetEgg())
-    end
-
     EquipEgg()
     wait(2)
 
     print("== Egg Hatching Started ==")
     spawn(function()
-        while true and wait(5) do
-            PetEquippedWithID = ClientData.get("pet_char_wrappers")[1].pet_id
-            if PetEquippedWithID ~= EggName then 
-                EquipEgg()
+        while task.wait(5) do
+            if ClientData.get("pet_char_wrappers")[1] then
+                if ClientData.get("pet_char_wrappers")[1].pet_id ~= findPetID(EggName) then 
+                    EquipEgg()
+                end
             end
         end
     end)
 end
 
-------------- Launch Auto-Equip if Detect New Pet in INV --------
-task.spawn(function()
-    while task.wait(1) do 
-        for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.pets) do
-            if not CheckInv(i) then 
-                table.insert(inv, i)
-                if _G.AgingPotionMode then
-                    EquipMainPet()
-                end
-                RequestWebhook(findPetName(v.id))  --- Webhook              
-            end 
-        end
-    end
-end)
 ------------- FURNITURE STUFF ----------------
 function GetFurniture(name)
-    for _,v in pairs(workspace.HouseInteriors.furniture:GetChildren()) do 
-        if v:IsA("Folder") and v:FindFirstChildOfClass("Model") then 
-           if tostring(string.lower(v:FindFirstChildOfClass("Model").Name)):match(string.lower(name)) then 
-              return v:FindFirstChildOfClass("Model"):GetAttribute("furniture_unique")
-           end
+    name = string.lower(name)
+    for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].house_interior.furniture) do 
+        if v.id == name then 
+            return i
         end
     end
 end
@@ -651,6 +676,7 @@ end
 ---------------------- Lure System ------------------
 print("== Lure System Activated ==")
 _G.BaitID = "lures_2023_campfire_cookies"
+_G.LureUniqueID = GetFurniture("lures_2023_normal_lure")
 
 function BuyLureBox()
     local args5 = {
@@ -664,10 +690,9 @@ function BuyLureBox()
         }
     }
     game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("HousingAPI/BuyFurnitures"):InvokeServer(unpack(args5))
-    _G.fNumber = GetFurniture("Lures2023NormalLure")
+    task.wait(1)
+    _G.LureUniqueID = GetFurniture("lures_2023_normal_lure")
 end
-
-_G.fNumber = GetFurniture("Lures2023NormalLure")
 
 function LureFeedBeta()
     for i, v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.food) do
@@ -677,12 +702,12 @@ function LureFeedBeta()
     end
     local args = {
         [1] = game.Players.LocalPlayer,
-        [2] = _G.fNumber,
+        [2] = _G.LureUniqueID,
         [3] = "UseBlock",
         [4] = {
             ["bait_unique"] = tostring(cookieid)
         },
-        [5] = workspace:WaitForChild("PlayerCharacters"):WaitForChild(game.Players.LocalPlayer.Name) 
+        [5] = game.Players.LocalPlayer.Character 
     }
     game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("HousingAPI/ActivateFurniture"):InvokeServer(unpack(args))
 end
@@ -690,47 +715,79 @@ end
 function ClaimLureBeta()
     local args = {
         [1] = game:GetService("Players").LocalPlayer,
-        [2] = _G.fNumber,
+        [2] = _G.LureUniqueID,
         [3] = "UseBlock",
         [4] = true,
-        [5] = workspace:WaitForChild("PlayerCharacters"):WaitForChild(game.Players.LocalPlayer.Name)
+        [5] = game.Players.LocalPlayer.Character
     }
     game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("HousingAPI/ActivateFurniture"):InvokeServer(unpack(args))
     LureFeedBeta()
+
+    -- Send Webhook for any New Pets
+    for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.pets) do
+        if not CheckInv(i) then 
+            table.insert(inv, i)
+            RequestWebhook(findPetName(v.id))  --- Webhook              
+        end 
+    end
 end
 
 spawn(function()
-    if _G.fNumber == nil then
+    local PetInventory = ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.pets
+    for i, v in pairs(PetInventory) do
+        if v.id == findPetID("Blazing Lion") then
+            ScreenGui.Frame.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+            break
+        end
+    end
+
+    if _G.LureUniqueID == nil and ClientData.get("money") >= 750 then
         print("Buying Lure Box")
         BuyLureBox()
+        task.wait(1)
     end
-    while task.wait(15) do
-        pcall(ClaimLureBeta)
+    if _G.LureUniqueID then
+        while task.wait(1) do
+            local LureInBox = ClientData.get_data()[Player.Name].house_interior.furniture[_G.LureUniqueID].lure
+            if LureInBox then
+                if LureInBox.finished then
+                    print("Received", LureInBox.reward.kind)
+                    ClaimLureBeta()
+                else
+                    LureEndTime = LureInBox.lure_start_timestamp + 14400
+                    print("Waiting", math.floor(LureEndTime - os.time()), "Seconds for Lure!")
+                    task.wait(LureEndTime - os.time())
+                end
+            else
+                print("Lure Box is Empty, inserting Bait into Lure Box!")
+                LureFeedBeta()
+            end
+        end
     end
 end)
 
 ---------------------- LOCATION/FURNITURE STUFF  --------------------
 
-getgenv().aPetCrib = GetFurniture("Crib") or GetFurniture("PetBed")
-getgenv().aPetShower = GetFurniture("Shower") or GetFurniture("Bath")
-getgenv().aPiano = GetFurniture("Piano")
+getgenv().aPetCrib = GetFurniture("basiccrib") or GetFurniture("PetBed")
+getgenv().aPetShower = GetFurniture("stylishshower") or GetFurniture("Bath")
+getgenv().aPiano = GetFurniture("piano")
 getgenv().aToilet = GetFurniture("Toilet")
 
 if not aPetCrib then
     buyFurniture("basiccrib")
-    print("------ Notification ------ Bought Crib")
-    getgenv().aPetCrib = GetFurniture("Crib") or GetFurniture("PetBed")
+    print("---- Notification ---- Bought Crib")
+    getgenv().aPetCrib = GetFurniture("basiccrib") or GetFurniture("PetBed")
 end
 
 if not aPetShower then
     buyFurniture("stylishshower")
-    print("------ Notification ------ Bought Shower")
-    getgenv().aPetShower = GetFurniture("Shower") or GetFurniture("Bath")
+    print("---- Notification ---- Bought Shower")
+    getgenv().aPetShower = GetFurniture("stylishshower") or GetFurniture("Bath")
 end
 
 if not aPiano and tonumber(ClientData.get("money")) > 100 then
     buyFurniture("piano")
-    print("------ Notification ------ Bought Piano")
+    print("---- Notification ---- Bought Piano")
     getgenv().aPiano = GetFurniture("Piano")
 end
 
@@ -778,10 +835,11 @@ for _, v in pairs(getgc()) do
 end
 
 local SetLocation = function(A, B, C)
+    local O = get_thread_identity()
     set_thread_identity(2)
     require(game.ReplicatedStorage.ClientModules.Core.InteriorsM.InteriorsM).enter(A, B, C)
     --SetLocationTP(A, B, C)
-    set_thread_identity(8)
+    set_thread_identity(O)
 end
 
 local GoToMainMap = function()
@@ -821,27 +879,69 @@ end
 
 ---------------- Function Tasks ------------------
 
-function hasVehicle()
-    for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.transport) do
-        if v.id == "vehicle_shop_2022_bicycle" then
-            return true
+function hasStroller()
+    for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.strollers) do
+        if v.id == "stroller-default" then
+            return v.unique
         end
     end
-    if ClientData.get_data()[Player.Name].money > 75 then
-        local args = {
-            [1] = "transport",
-            [2] = "vehicle_shop_2022_bicycle",
-            [3] = {
-                ["buy_count"] = 1,
-                ["chosen_rgb"] = Color3.new(0.06666667014360428, 0.06666667014360428, 0.06666667014360428)
-            }
-        }
-        
-        game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("ShopAPI/BuyItem"):InvokeServer(unpack(args))
-        return true
-    end
-    return false
 end
+
+function hasGoldenApple()
+    for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.food) do
+        if v.id == "healing_apple" then
+            return v.unique
+        end
+    end   
+end
+
+function isDoctorLoaded()
+    local stuckCount = 0
+    local isStuck = false
+
+    local doctor = workspace.HouseInteriors.furniture:FindFirstChild("Doctor", true)
+    if not doctor then
+        repeat
+            task.wait(1)
+            doctor = workspace.HouseInteriors.furniture:FindFirstChild("Doctor", true)
+            stuckCount += 1
+            local isStuck = if stuckCount > 30 then true else false
+        until doctor or isStuck
+    end
+    if isStuck then
+        print("Wasn't able to find Doctor Id")
+        return false
+    end
+    return true
+end
+
+local doctorId = nil
+local function getDoctorId()
+    if doctorId then print(`Doctor Id: {doctorId}`) return end
+    print("🩹 Getting Doctor ID 🩹")
+    local stuckCount = 0
+    local isStuck = false
+    RS.API["LocationAPI/SetLocation"]:FireServer("Hospital")
+    task.wait(1)
+    local doctor = workspace.HouseInteriors.furniture:FindFirstChild("Doctor", true)
+    if not doctor then
+        repeat
+            task.wait(1)
+            doctor = workspace.HouseInteriors.furniture:FindFirstChild("Doctor", true)
+            stuckCount += 1
+            local isStuck = if stuckCount > 30 then true else false
+        until doctor or isStuck
+    end
+    if isStuck then
+        print("Wasn't able to find Doctor Id")
+        return
+    end
+    if doctor then
+        doctorId = doctor:GetAttribute("furniture_unique")
+        print(`Found doctor Id: {doctorId}`)
+    end
+end
+
 
 -- Food / Hungry Task
 function HungryTask()
@@ -935,7 +1035,6 @@ function ThirstyTask()
         return
     end
     wait(2)
-    --game.ReplicatedStorage:FindFirstChild("PetObjectAPI/CreatePetObject",true):InvokeServer("__Enum_PetObjectCreatorType_2", {["unique_id"] = Tea})
     game.ReplicatedStorage:FindFirstChild("PetAPI/ConsumeFoodItem",true):FireServer(Tea, ClientData.get("pet_char_wrappers")[1]["pet_unique"])
 end
 
@@ -950,21 +1049,11 @@ end
 
 -- Sick / Hospital Task
 function SickTask()
-    CreateTempPart()
     EquipLastPet()
-    for i=1,35 do task.wait(.35)
-        game.ReplicatedStorage.API:FindFirstChild("LocationAPI/SetLocation"):FireServer("Salon")
+    goldenAppleID = hasGoldenApple()
+    if goldenAppleID then
+        RS:FindFirstChild("PetAPI/ConsumeFoodItem",true):FireServer(goldenAppleID, ClientData.get("pet_char_wrappers")[1]["pet_unique"])
     end
-    task.wait(2)
-
-    local doctor = workspace.HouseInteriors.furniture:FindFirstChild("Doctor", true)
-    local args = {
-        [1] = doctor:GetAttribute("furniture_unique"),
-        [2] = "UseBlock",
-        [3] = "Yes",
-        [4] = game:GetService("Players").LocalPlayer.Character
-    }
-    game:GetService("ReplicatedStorage").API:FindFirstChild("HousingAPI/ActivateInteriorFurniture"):InvokeServer(unpack(args))
 end
 
 -- Pizza Party Task
@@ -988,10 +1077,11 @@ end
 function CampingTask()
     -- Camping + Sleeping
     print("Tping to Main Map")
-    GoToMainMap()
-    repeat task.wait(1) until GetMainMap()
     
-    task.wait(10)
+    RS.API:FindFirstChild("LocationAPI/SetLocation"):FireServer("MainMap", Player, LiveOpsMapSwap.get_current_map_type())
+    task.wait(5)
+    if workspace:FindFirstChildWhichIsA("Terrain") then workspace.Terrain:Clear() end
+
     print("Tping to Camping")
     HRP.CFrame = CFrame.new(-27,20,-1056) -- set 25
     game.Players.LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Landed)
@@ -1004,23 +1094,15 @@ end
 -- Beach Party Task
 function BeachPartyTask()
     print("Tping to Main Map")
-    GoToMainMap()
-    repeat task.wait(1) until GetMainMap()
-    
-    task.wait(10)
+    RS.API:FindFirstChild("LocationAPI/SetLocation"):FireServer("MainMap", Player, LiveOpsMapSwap.get_current_map_type())
+    task.wait(5)
+    if workspace:FindFirstChildWhichIsA("Terrain") then workspace.Terrain:Clear() end
+
     print("Tping to Beach")
     HRP.CFrame = CFrame.new(-667, 20, -1421) -- set 25
     game.Players.LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Landed)
     CreateTempPart()
     EquipLastPet()
-    --[[
-    print("Re-equiping last pet")
-    GoToMainMap()
-    task.wait(2)
-    HRP.CFrame = CFrame.new(-667, 25, -1421) -- set 25
-    EquipLastPet()
-    CreateTempPart()]]
-    --game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("HousingAPI/ActivateFurniture"):InvokeServer(game:GetService("Players").LocalPlayer, aPetCrib, "UseBlock", {["cframe"] = CFrame.new(-667, 22, -1421) + Vector3.new(0, 1, 0)}, ClientData.get("pet_char_wrappers")[1].char)
 end
 
 -- Salon Task
@@ -1045,75 +1127,57 @@ function EquipBike()
 end
 
 function RideTask()
-    GoToMainMap()
     CreateTempPart()
-    task.wait(5)
+    task.wait(2)
     EquipLastPet()
     task.wait(2)
 
-    bikeId = EquipBike()
-
-    if bikeId then
+    strollerId = hasStroller()
+    if strollerId then
+        RS.API:FindFirstChild("ToolAPI/Equip"):InvokeServer(strollerId, {})
+        local args = {
+            [1] = ClientData.get("pet_char_wrappers")[1].char,
+            [2] = Player.Character.StrollerTool.ModelHandle.TouchToSits.TouchToSit
+        }
+        RS.API:FindFirstChild("AdoptAPI/UseStroller"):InvokeServer(unpack(args))
         task.wait(1)
-        oldCFrame = HRP.CFrame + Vector3.new(0, 7, 0)
-        HRP.CFrame = oldCFrame
-        game.Players.LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Landed)
 
-        task.wait(1)
-        game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.W, false, game)
+        local st = tick()
         repeat
-            spawn(function() game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.W, false, game) end)
-            pcall(function()
-                task.wait(3)
-                HRP.CFrame = oldCFrame
-                game.Players.LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Landed)
-                EquipBike()
-                task.wait(0.5)
-            end)
-        until not CheckTaskExist("ride") or (not IsInMainMap())
-        task.wait(1.5)
-        game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.W, false, game)
+            if Player.Character.Humanoid:GetState() ~= Enum.HumanoidStateType.Freefall then
+                Player.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+            task.wait(0.1)
+        until not CheckTaskExist("ride") or (tick() - st >= 90)
         task.wait(1)
-        game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("ToolAPI/Unequip"):InvokeServer(bikeId)
-        HRP.CFrame = oldCFrame
+
+        RS.API:FindFirstChild("AdoptAPI/EjectBaby"):FireServer(ClientData.get("pet_char_wrappers")[1]["char"])
         print("Completed Ride Task")
     end
 end
 
 -- Walk Task
 function WalkTask()
-    GoToMainMap()
     CreateTempPart()
-    task.wait(5)
+    task.wait(2)
     EquipLastPet()
     task.wait(2)
-
-    oldCFrame = HRP.CFrame + Vector3.new(0, 7, 0)
-    HRP.CFrame = oldCFrame
-    game.Players.LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Landed)
-    --Player.Character.Humanoid:MoveTo(HRP.Position + Vector3.new(1000, 0, 0))
+    RS.API["AdoptAPI/HoldBaby"]:FireServer(ClientData.get("pet_char_wrappers")[1]["char"])
+    local st = tick()
     repeat
-        local pet = ClientData.get("pet_char_wrappers")[1]["char"]
-        pet.HumanoidRootPart.CFrame = oldCFrame + Vector3.new(0, 100, 0)
-        HRP.CFrame = oldCFrame + Vector3.new(0, 100, 0)
-        --HRP.CFrame = oldCFrame 
-        game.Players.LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Landed)
-        task.wait(2)
-        CreateTempPart()
-    until not CheckTaskExist("walk") or (not IsInMainMap())
-    --Player.Character.Humanoid:MoveTo(HRP.Position)
-    HRP.CFrame = oldCFrame
-    game.Players.LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Landed)
-    CreateTempPart()
-    task.wait(0.5)
-    CreateTempPart()
+        if Player.Character.Humanoid:GetState() ~= Enum.HumanoidStateType.Freefall then
+            Player.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+        task.wait(0.1)
+    until not CheckTaskExist("walk") or (tick() - st >= 90)
+    RS.API:FindFirstChild("AdoptAPI/EjectBaby"):FireServer(ClientData.get("pet_char_wrappers")[1]["char"])
 end
 
 function PlayTask()
     EquipLastPet()
     task.wait(2)
     boneId = nil
-    startTime = tick()
+    local st = tick()
     for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.toys) do
         if v.id == "squeaky_bone_default" then
             boneId = i
@@ -1130,7 +1194,7 @@ function PlayTask()
             end
         end
         task.wait(5.2)
-    until not CheckTaskExist("play") or (tick() - startTime >= 60)
+    until not CheckTaskExist("play") or (tick() - st >= 60)
     game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("ToolAPI/Unequip"):InvokeServer(boneId)
 end
 
@@ -1229,11 +1293,15 @@ spawn(function()
         task.wait()
     end)
     
-    --workspace.HouseInteriors.furniture:Destroy()
+    workspace.HouseInteriors.furniture:Destroy()
     workspace.HouseInteriors.ChildAdded:Connect(function()
-        if not workspace.Interiors:FindFirstChild("Hospital") then
+        if workspace:FindFirstChildWhichIsA("Terrain") then workspace.Terrain:Clear() end
+        local doctor = workspace.HouseInteriors.furniture:FindFirstChild("Doctor", true)
+        if not doctor then
             if workspace.HouseInteriors.furniture then
-                workspace.HouseInteriors.furniture:Destroy()
+                for i, v in pairs(workspace.HouseInteriors.furniture:GetChildren()) do
+                    v:Destroy()
+                end
             end
             if workspace.HouseInteriors.blueprint:FindFirstChildOfClass("Model") then 
                 workspace.HouseInteriors.blueprint:FindFirstChildOfClass("Model"):Destroy()
@@ -1247,10 +1315,10 @@ spawn(function()
     workspace.Terrain.WaterWaveSpeed = 0
 
     pcall(function()
-        workspace.StaticMap.Balloon:Destroy()
         if workspace:FindFirstChildWhichIsA("Terrain") then
             workspace.Terrain:Clear()
         end
+        workspace.StaticMap.Balloon:Destroy()
     end)
     pcall(function()
         workspace.StaticMap.Park.Trampolines:Destroy()
@@ -1568,7 +1636,7 @@ spawn(function()
         for taskName, v in pairs(GetBabyTasks()) do
             repeat task.wait(1) until not getgenv().TPinProgress
             startTick = tick()
-            if not CheckTaskExist("walk") then
+            if (not CheckTaskExist("walk")) and (not CheckTaskExist("ride")) then
                 if taskName == "dirty" and not CheckTaskExist("dirty") then
                     spawn(function() task.wait(30) 
                         RS.API:WaitForChild("AdoptAPI/BabyJump"):FireServer(Player.Character)
@@ -1704,156 +1772,163 @@ end
 spawn(function()
     while task.wait(0.1) do
         pcall(function()
-        if HRP.CFrame.Y < -250 then
-            print("Safety Net Utilized!")
-            CreateTempPart()
-            HRP.CFrame = CFrame.new(-248.025375, -50, -1746.41724, -0.998434782, -7.92188573e-08, -0.0559278913, -7.50130056e-08, 1, -7.73006334e-08, 0.0559278913, -7.29843208e-08, -0.998434782)
-            CreateTempPart()
-            task.wait(0.5)
-            GoToMainMap()
-            repeat task.wait(1) until HRP.CFrame > -250
-        end
+            if HRP.CFrame.Y < -250 then
+                print("Safety Net Utilized!")
+                CreateTempPart()
+                HRP.CFrame = CFrame.new(-248.025375, -50, -1746.41724, -0.998434782, -7.92188573e-08, -0.0559278913, -7.50130056e-08, 1, -7.73006334e-08, 0.0559278913, -7.29843208e-08, -0.998434782)
+                CreateTempPart()
+                task.wait(0.5)
+                repeat task.wait(1) until HRP.CFrame > -250
+            end
         end)
     end
 end)
 
+-- Get 30 Golden Apples
+local args = {
+    [1] = "food",
+    [2] = "healing_apple",
+    [3] = {
+        ["buy_count"] = 30
+    }
+}
+game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("ShopAPI/BuyItem"):InvokeServer(unpack(args))
+
 print("Creating Temp Part")
 CreateTempPart()
-print("TPing to Main Map")
-GoToMainMap()
-print("TPed to Main Map - First Time")
 task.wait(2)
 
 getgenv().MysteryChoosing = false
 
 while task.wait(1) do
-    for taskName, v in pairs(GetPetTasks()) do
-        local success, errorMessage = pcall(function()
-            if taskName == "hungry" then
-                print("Hungry task appeared.")
-                _G.Status = "Completing Hungry Task..."
-                spawn(function()
-                    pcall(HungryTask)
-                end)
-            elseif taskName == "thirsty" then
-                print("Thirsty task appeared.")
-                _G.Status = "Completing Thirsty Task..."
-                spawn(function()
-                    pcall(ThirstyTask)
-                end)
-            elseif taskName == "bored" then
-                print("Bored task appeared.")
-                _G.Status = "Completing Bored Task..."
-                spawn(function()
-                    pcall(BoredTask)
-                end)
-            elseif taskName == "camping" then
-                print("Camping task appeared.")
-                _G.Status = "Completing Camping Task..."
-                spawn(function()
-                    pcall(CampingTask)
-                end)
-            elseif taskName == "school" then
-                print("School task appeared.")
-                _G.Status = "Completing School Task..."
-                spawn(function()
-                    pcall(SchoolTask)
-                end)
-            elseif taskName == "beach_party" then
-                print("Beach party task appeared.")
-                _G.Status = "Completing Beach Party Task..."
-                spawn(function()
-                    pcall(BeachPartyTask)
-                end)
-            elseif taskName == "salon" then
-                print("Salon task appeared.")
-                _G.Status = "Completing Salon Task..."
-                spawn(function()
-                    pcall(SalonTask)
-                end)
-            elseif taskName == "pizza_party" then
-                print("Pizza Party task appeared.")
-                _G.Status = "Completing Pizza Party Task..."
-                spawn(function()
-                    pcall(PizzaPartyTask)
-                end)
-            elseif taskName == "dirty" then
-                print("Dirty task appeared.")
-                _G.Status = "Completing Dirty Task..."
-                spawn(function()
-                    pcall(DirtyTask)
-                end)
-            elseif taskName == "sleepy" then
-                print("Sleepy task appeared.")
-                _G.Status = "Completing Sleepy Task..."
-                spawn(function()
-                    pcall(SleepyTask)
-                end)
-            elseif taskName == "toilet" then
-                print("Toilet task appeared.")
-                _G.Status = "Completing Toilet Task..."
-                spawn(function()
-                    pcall(ToiletTask)
-                end)                    
-            --elseif taskName == "sick" then
-            --    print("Sick task appeared.")
-            --    _G.Status = "Completing Sick Task..."
-            --    spawn(function()
-            --        pcall(SickTask)
-            --    end)
-            --elseif taskName == "ride" and hasVehicle() then
-            --    print("Ride task appeared.")
-            --    _G.Status = "Completing Ride Task..."
-            --    spawn(function()
-            --        RideTask()
-            --    end)
-            elseif taskName == "walk" then
-                print("Walk task appeared.")
-                _G.Status = "Completing Walk Task..."
-                spawn(function()
-                    WalkTask()
-                end)
-            elseif taskName == "play" then
-                print("Play task appeared.")
-                _G.Status = "Completing Play Task..."
-                spawn(function()
-                    PlayTask()
-                end)
-            elseif taskName:match("mystery") and not getgenv().MysteryChoosing then
-                print("Choosing Random Mystery Task!")
-                GoToMainMap()
-                getgenv().MysteryChoosing = true
-                spawn(function() 
-                    ChooseMysteryTask(taskName)
-                end)
-                EquipLastPet()
+    pcall(function()
+        for taskName, v in pairs(GetPetTasks()) do
+            local success, errorMessage = pcall(function()
+                if taskName == "hungry" then
+                    print("Hungry task appeared.")
+                    _G.Status = "Completing Hungry Task..."
+                    spawn(function()
+                        pcall(HungryTask)
+                    end)
+                elseif taskName == "thirsty" then
+                    print("Thirsty task appeared.")
+                    _G.Status = "Completing Thirsty Task..."
+                    spawn(function()
+                        pcall(ThirstyTask)
+                    end)
+                elseif taskName == "bored" then
+                    print("Bored task appeared.")
+                    _G.Status = "Completing Bored Task..."
+                    spawn(function()
+                        pcall(BoredTask)
+                    end)
+                elseif taskName == "camping" then
+                    print("Camping task appeared.")
+                    _G.Status = "Completing Camping Task..."
+                    spawn(function()
+                        pcall(CampingTask)
+                    end)
+                elseif taskName == "school" then
+                    print("School task appeared.")
+                    _G.Status = "Completing School Task..."
+                    spawn(function()
+                        pcall(SchoolTask)
+                    end)
+                elseif taskName == "beach_party" then
+                    print("Beach party task appeared.")
+                    _G.Status = "Completing Beach Party Task..."
+                    spawn(function()
+                        pcall(BeachPartyTask)
+                    end)
+                elseif taskName == "salon" then
+                    print("Salon task appeared.")
+                    _G.Status = "Completing Salon Task..."
+                    spawn(function()
+                        pcall(SalonTask)
+                    end)
+                elseif taskName == "pizza_party" then
+                    print("Pizza Party task appeared.")
+                    _G.Status = "Completing Pizza Party Task..."
+                    spawn(function()
+                        pcall(PizzaPartyTask)
+                    end)
+                elseif taskName == "dirty" then
+                    print("Dirty task appeared.")
+                    _G.Status = "Completing Dirty Task..."
+                    spawn(function()
+                        pcall(DirtyTask)
+                    end)
+                elseif taskName == "sleepy" then
+                    print("Sleepy task appeared.")
+                    _G.Status = "Completing Sleepy Task..."
+                    spawn(function()
+                        pcall(SleepyTask)
+                    end)
+                elseif taskName == "toilet" then
+                    print("Toilet task appeared.")
+                    _G.Status = "Completing Toilet Task..."
+                    spawn(function()
+                        pcall(ToiletTask)
+                    end)                    
+                elseif taskName == "sick" and hasGoldenApple() then
+                    print("Sick task appeared.")
+                    _G.Status = "Completing Sick Task..."
+                    spawn(function()
+                        pcall(SickTask)
+                    end)
+                elseif taskName == "ride" and hasStroller() then
+                    print("Ride task appeared.")
+                    _G.Status = "Completing Ride Task..."
+                    spawn(function()
+                        RideTask()
+                    end)
+                elseif taskName == "walk" then
+                    print("Walk task appeared.")
+                    _G.Status = "Completing Walk Task..."
+                    spawn(function()
+                        WalkTask()
+                    end)
+                elseif taskName == "play" then
+                    print("Play task appeared.")
+                    _G.Status = "Completing Play Task..."
+                    spawn(function()
+                        PlayTask()
+                    end)
+                elseif taskName:match("mystery") and not getgenv().MysteryChoosing then
+                    print("Choosing Random Mystery Task!")
+                    getgenv().MysteryChoosing = true
+                    spawn(function() 
+                        ChooseMysteryTask(taskName)
+                    end)
+                    EquipLastPet()
+                end
+                
+                --print("Waiting for Task Completion!")
+                startTime = tick()
+                if taskName == "walk" or taskName == "ride" then
+                    task.wait(15)
+                    repeat task.wait(1) until not CheckTaskExist(taskName) or (tick() - startTime >= 90)
+                elseif (not taskName:match("mystery")) and (taskName ~= "ride") then
+                    task.wait(15)
+                    local timeout = 60
+                    repeat
+                        wait(1)
+                        timeout = timeout - 1
+                    until not CheckTaskExist(taskName) or timeout <= 0
+                end
+
+                task.wait(3)
+
+                RS.API["AdoptAPI/MakeBabyJumpOutOfSeat"]:FireServer(ClientData.get("char_wrapper")["char"])
+                RS.API["AdoptAPI/MakeBabyJumpOutOfSeat"]:FireServer(ClientData.get("pet_char_wrappers")[1]["char"])
+                _G.Status = "Idle"
+            end)
+
+            if not success then
+                warn("An error occurred while executing the task: " .. errorMessage)
             end
-            
-            --print("Waiting for Task Completion!")
-            startTime = tick()
-            if taskName == "walk" then --or taskName == "ride" then
-                task.wait(15)
-                repeat task.wait(1) until not CheckTaskExist(taskName) or (tick() - startTime >= 90)
-            elseif (not taskName:match("mystery")) and (taskName ~= "ride") and (taskName ~= "sick") then
-                task.wait(15)
-                local timeout = 60
-                repeat
-                    wait(1)
-                    timeout = timeout - 1
-                until not CheckTaskExist(taskName) or timeout <= 0
-            end
-
-            task.wait(3)
-
-            RS.API["AdoptAPI/MakeBabyJumpOutOfSeat"]:FireServer(ClientData.get("char_wrapper")["char"])
-            RS.API["AdoptAPI/MakeBabyJumpOutOfSeat"]:FireServer(ClientData.get("pet_char_wrappers")[1]["char"])
-            _G.Status = "Idle"
-        end)
-
-        if not success then
-            warn("An error occurred while executing the task: " .. errorMessage)
         end
-    end
+    end)
 end
 
 
