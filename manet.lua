@@ -281,8 +281,8 @@ function SetStatus()
             OldDifPots = DifPotion
             OldDifPotTime = os.time()
         else
-            if (os.time() - OldDifPotTime >= 7200) and (DifPotion > 0) and (DifPotion / math.floor((os.time() - StartTimeAC)/60/60) < 1) then
-                RequestWebhook("Shutting down due to no pots in past 2 hours")
+            if (os.time() - OldDifPotTime >= 1200) and (DifPotion > 0) and (DifPotion / math.floor((os.time() - StartTimeAC)/60/60) < 1) then
+                RequestWebhook("Shutting down due to no pots in past 20 minutes")
                 game:Shutdown()
             end
         end
