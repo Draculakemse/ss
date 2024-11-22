@@ -293,7 +293,7 @@ function SetStatus()
         Potions = DifPotion
     }
 
-    TextLabel.Text = [[<font color="rgb(255,180,180)">]]..game.Players.LocalPlayer.Name..[[</font> - 00009
+    TextLabel.Text = [[<font color="rgb(255,180,180)">]]..game.Players.LocalPlayer.Name..[[</font> - |||||
     Status: <font color="rgb(187, 166, 255)"> ]].._G.Status..[[ </font>
     Potions: <font color="rgb(252, 207, 71)">]]..Potions..[[</font>
     Bucks: <font color="rgb(0, 191, 41)">]]..Bucks..[[</font>
@@ -309,7 +309,8 @@ ScreenGui.Enabled = true
 
 spawn(function()
     while task.wait(1) do
-        SetStatus()
+        successC, errorC = pcall(SetStatus)
+        if successC then print(errorC) end
     end
 end)
 
@@ -1587,6 +1588,7 @@ spawn(function()
 end)
 
 --------------- Main Task ---------------
+
 
 ----- Auto Pet Tasks ------
 
