@@ -281,9 +281,11 @@ function SetStatus()
             OldDifPots = DifPotion
             OldDifPotTime = os.time()
         else
-            if (os.time() - OldDifPotTime >= 3600) and (DifPotion > 0) and (DifPotion / math.floor((os.time() - StartTimeAC)/60/60) < 1) then
-                RequestWebhook("Shutting down due to no pots in past 1 hour")
+            if (os.time() - OldDifPotTime >= 3600) and (DifPotion > 0) and (DifPotion / math.floor((os.time() - StartTimeAC)/60/60) < 1) and (not _G.AccStuck) then
+                RequestWebhook("Shutting down due to no pots in past 1 hours")
+                game.Players.LocalPlayer:Kick("Account is Stuck")
                 game:Shutdown()
+                _G.AccStuck = true
             end
         end
     end
@@ -293,7 +295,7 @@ function SetStatus()
         Potions = DifPotion
     }
 
-    TextLabel.Text = [[<font color="rgb(255,180,180)">]]..game.Players.LocalPlayer.Name..[[</font> - |||||
+    TextLabel.Text = [[<font color="rgb(255,180,180)">]]..game.Players.LocalPlayer.Name..[[</font> - |||2|||
     Status: <font color="rgb(187, 166, 255)"> ]].._G.Status..[[ </font>
     Potions: <font color="rgb(252, 207, 71)">]]..Potions..[[</font>
     Bucks: <font color="rgb(0, 191, 41)">]]..Bucks..[[</font>
@@ -308,9 +310,9 @@ SetStatus()
 ScreenGui.Enabled = true
 
 spawn(function()
-    while task.wait(1) do
+    while task.wait(1) and (not getgenv().Disconnected) do
         successC, errorC = pcall(SetStatus)
-        if successC then print(errorC) end
+        if not successC then print(errorC) end
     end
 end)
 
@@ -734,14 +736,6 @@ function ClaimLureBeta()
 end
 
 spawn(function()
-    local PetInventory = ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.pets
-    for i, v in pairs(PetInventory) do
-        if v.id == findPetID("Blazing Lion") then
-            ScreenGui.Frame.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
-            break
-        end
-    end
-
     if _G.LureUniqueID == nil and ClientData.get("money") >= 750 then
         print("Buying Lure Box")
         BuyLureBox()
@@ -749,20 +743,30 @@ spawn(function()
     end
     if _G.LureUniqueID then
         while task.wait(1) do
-            local LureInBox = ClientData.get_data()[Player.Name].house_interior.furniture[_G.LureUniqueID].lure
-            if LureInBox then
-                if LureInBox.finished then
-                    print("Received", LureInBox.reward.kind)
-                    ClaimLureBeta()
-                else
-                    LureEndTime = LureInBox.lure_start_timestamp + 14400
-                    print("Waiting", math.floor(LureEndTime - os.time()), "Seconds for Lure!")
-                    task.wait(LureEndTime - os.time())
+            pcall(function()
+                local PetInventory = ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.pets
+                for i, v in pairs(PetInventory) do
+                    if v.id == findPetID("Blazing Lion") then
+                        ScreenGui.Frame.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+                        break
+                    end
                 end
-            else
-                print("Lure Box is Empty, inserting Bait into Lure Box!")
-                LureFeedBeta()
-            end
+
+                local LureInBox = ClientData.get_data()[Player.Name].house_interior.furniture[_G.LureUniqueID].lure
+                if LureInBox then
+                    if LureInBox.finished then
+                        print("Received", LureInBox.reward.kind)
+                        ClaimLureBeta()
+                    else
+                        LureEndTime = LureInBox.lure_start_timestamp + 14400
+                        print("Waiting", math.floor(LureEndTime - os.time()), "Seconds for Lure!")
+                        task.wait(LureEndTime - os.time())
+                    end
+                else
+                    print("Lure Box is Empty, inserting Bait into Lure Box!")
+                    LureFeedBeta()
+                end
+            end)
         end
     end
 end)
