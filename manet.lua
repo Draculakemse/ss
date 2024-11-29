@@ -295,7 +295,7 @@ function SetStatus()
         Potions = DifPotion
     }
 
-    TextLabel.Text = [[<font color="rgb(255,180,180)">]]..game.Players.LocalPlayer.Name..[[</font> - |||2|||
+    TextLabel.Text = [[<font color="rgb(255,180,180)">]]..game.Players.LocalPlayer.Name..[[</font> - ||||3||||
     Status: <font color="rgb(187, 166, 255)"> ]].._G.Status..[[ </font>
     Potions: <font color="rgb(252, 207, 71)">]]..Potions..[[</font>
     Bucks: <font color="rgb(0, 191, 41)">]]..Bucks..[[</font>
@@ -390,7 +390,7 @@ function IsInInv(petUnique)
 end
 
 function RequestWebhook(Desc) 
-    local WebhookURL = "https://discord.com/api/webhooks/1273206813290135608/p4Tz5ZFSnh4alA6iv1c760FKOyum9mTarQERdFOzLmxje747Phh_c2tXqYcdCKI_BLlV"
+    local WebhookURL = "https://discord.com/api/webhooks/1312196298002399273/0_wyKgd3W99vsJ273KAzwQbO1pZmSFdw5hmKZirfBQpiVszly1sf_0BNVIXxftN27Epl"
     local Request = http_request or request or HttpPost or syn.request
     local Data = {
         ["content"] = "",
@@ -741,6 +741,12 @@ spawn(function()
         BuyLureBox()
         task.wait(1)
     end
+
+    -- Get Canine Truck
+    RS.API:WaitForChild("CodeRedemptionAPI/AttemptRedeemCode"):InvokeServer("AMTRUCK2024")
+    print("Fired Truck Remote")
+    
+
     if _G.LureUniqueID then
         while task.wait(1) do
             pcall(function()
@@ -1090,6 +1096,7 @@ function CampingTask()
     print("Tping to Camping")
     HRP.CFrame = CFrame.new(-27,20,-1056) -- set 25
     game.Players.LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Landed)
+    if workspace:FindFirstChildWhichIsA("Terrain") then workspace.Terrain:Clear() end
     CreateTempPart()
     EquipLastPet()
     
@@ -1106,6 +1113,7 @@ function BeachPartyTask()
     print("Tping to Beach")
     HRP.CFrame = CFrame.new(-667, 20, -1421) -- set 25
     game.Players.LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Landed)
+    if workspace:FindFirstChildWhichIsA("Terrain") then workspace.Terrain:Clear() end
     CreateTempPart()
     EquipLastPet()
 end
@@ -1592,7 +1600,6 @@ spawn(function()
 end)
 
 --------------- Main Task ---------------
-
 
 ----- Auto Pet Tasks ------
 
