@@ -285,8 +285,8 @@ function SetStatus()
             OldDifPots = DifPotion
             OldDifPotTime = os.time()
         else
-            if (os.time() - OldDifPotTime >= 4000) and (DifPotion > 0) and (DifPotion / math.floor((os.time() - StartTimeAC)/60/60) < 1) and (not _G.AccStuck) then
-                RequestWebhook("Shutting down due to no pots in past 1 hours")
+            if (os.time() - OldDifPotTime >= 7200) and (DifPotion > 0) and (DifPotion / math.floor((os.time() - StartTimeAC)/60/60) < 1) and (not _G.AccStuck) then
+                RequestWebhook("Shutting down due to no pots in past 2 hours")
                 game.Players.LocalPlayer:Kick("Account is Stuck")
                 game:Shutdown()
                 _G.AccStuck = true
@@ -299,7 +299,7 @@ function SetStatus()
         Potions = DifPotion
     }
 
-    TextLabel.Text = [[<font color="rgb(255,180,180)">]]..game.Players.LocalPlayer.Name..[[</font> - ||||4||||
+    TextLabel.Text = [[<font color="rgb(255,180,180)">]]..game.Players.LocalPlayer.Name..[[</font> - ||||5||||
     Status: <font color="rgb(187, 166, 255)"> ]].._G.Status..[[ </font>
     Potions: <font color="rgb(252, 207, 71)">]]..Potions..[[</font>
     Bucks: <font color="rgb(0, 191, 41)">]]..Bucks..[[</font>
@@ -802,11 +802,9 @@ spawn(function()
         pcall(function()
             -- Winter Advent Manager Claim
             Winter2024AdventManager = ClientData.get_data()[game.Players.LocalPlayer.Name]["winter_2024_advent_manager"]
-            for i, v in pairs(Winter2024AdventManager["replicated_rewards"]) do
-                if not Winter2024AdventManager["rewards_claimed"][i] then
-                    RS.API:WaitForChild("WinterfestAPI/AdventCalendarTryTakeReward"):InvokeServer(i)
-                    print("Claimed", v["amount"], findItemName(v["kind"], v["category"]))
-                end
+            if not Winter2024AdventManager["rewards_claimed"][#Winter2024AdventManager["replicated_rewards"]] then
+                RS.API:WaitForChild("WinterfestAPI/AdventCalendarTryTakeReward"):InvokeServer(i)
+                print("Claimed", v["amount"], findItemName(v["kind"], v["category"]))
             end
         end)
 
@@ -979,25 +977,16 @@ end
 -- Food / Hungry Task
 function HungryTask()
     EquipLastPet()
-    local Player = game.Players.LocalPlayer
-    game.ReplicatedStorage:FindFirstChild("ShopAPI/BuyItem",true):InvokeServer('food', 'pizza', {})
-    game.ReplicatedStorage:FindFirstChild("ToolAPI/BakeItem",true):InvokeServer()
-    while Player.Character:FindFirstChild('PizzaTool') do wait() end
-    while not Player.Character:FindFirstChild('PizzaTool') do wait() end
-    local Foods = ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.food or {}
-    local Pizza
-    for i,v in pairs(Foods) do
-        if v.id == 'pizza' then
-            Pizza = v.unique
+    
+    RS.API["ShopAPI/BuyItem"]:InvokeServer("food", "icecream", {})
+    for _, v in pairs(ClientData.get_data()[Player.Name].inventory.food) do
+        if v.id == "icecream" then
+            RS.API["ToolAPI/Equip"]:InvokeServer(v.unique, { ["use_sound_delay"] = true })
+            task.wait(1)
+            RS.API:WaitForChild("PetAPI/ConsumeFoodItem"):FireServer(v.unique, ClientData.get("pet_char_wrappers")[1]["pet_unique"])
             break
         end
     end
-    if not Pizza then
-        return
-    end
-    --game.ReplicatedStorage:FindFirstChild("PetObjectAPI/CreatePetObject",true):InvokeServer("__Enum_PetObjectCreatorType_2", {["unique_id"] = Pizza})
-    wait(1)
-    game.ReplicatedStorage:FindFirstChild("PetAPI/ConsumeFoodItem",true):FireServer(Pizza, ClientData.get("pet_char_wrappers")[1]["pet_unique"])
 end
 
 -- Dirty / Shower Task
@@ -1014,7 +1003,7 @@ function DirtyTask()
         },
         [5] = ClientData.get("pet_char_wrappers")[1].char
     }
-    game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("HousingAPI/ActivateFurniture"):InvokeServer(unpack(args))
+    RS.API:WaitForChild("HousingAPI/ActivateFurniture"):InvokeServer(unpack(args))
 end
 
 -- Sleeping Task
@@ -1031,7 +1020,7 @@ function SleepyTask()
         },
         [5] = ClientData.get("pet_char_wrappers")[1].char
     }
-    game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("HousingAPI/ActivateFurniture"):InvokeServer(unpack(args))
+    RS.API:WaitForChild("HousingAPI/ActivateFurniture"):InvokeServer(unpack(args))
 end
 
 -- Toilet / Potty Task
@@ -1047,7 +1036,7 @@ function ToiletTask()
         },
         [5] = ClientData.get("pet_char_wrappers")[1].char
     }
-    game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("HousingAPI/ActivateFurniture"):InvokeServer(unpack(args))
+    RS.API:WaitForChild("HousingAPI/ActivateFurniture"):InvokeServer(unpack(args))
 end
 
 -- Thirsty Task
@@ -1129,7 +1118,7 @@ function CampingTask()
     EquipLastPet()
 
     local startTime = tick()
-    repeat task.wait(1) until not CheckTaskExist("camping") or (tick() - startTime >= 90)   
+    repeat task.wait(1) until not CheckTaskExist("camping") or (tick() - startTime >= 90)
 end
 
 -- Beach Party Task
@@ -1147,7 +1136,7 @@ function BeachPartyTask()
     EquipLastPet()
 
     local startTime = tick()
-    repeat task.wait(1) until not CheckTaskExist("beach_party") or (tick() - startTime >= 90)   
+    repeat task.wait(1) until not CheckTaskExist("beach_party") or (tick() - startTime >= 90)
 end
 
 -- Salon Task
@@ -1159,7 +1148,7 @@ function SalonTask()
     end
 
     local startTime = tick()
-    repeat task.wait(1) until not CheckTaskExist("salon") or (tick() - startTime >= 90)   
+    repeat task.wait(1) until not CheckTaskExist("salon") or (tick() - startTime >= 90)
 end
 
 -- Ride Task
@@ -1286,7 +1275,7 @@ spawn(function()
             v.Material = "Plastic"
             v.Reflectance = 0
             v.TextureID = 10385902758728957
-        elseif v:IsA("SpecialMesh") and decalsyeeted  then
+        elseif v:IsA("SpecialMesh") and decalsyeeted then
             v.TextureId=0
         elseif v:IsA("ShirtGraphic") and decalsyeeted then
             v.Graphic=1
@@ -1644,6 +1633,7 @@ end)
 
 --------------- Main Task ---------------
 
+
 ----- Auto Pet Tasks ------
 
 function GetPetTasks()
@@ -1858,15 +1848,16 @@ getgenv().MysteryChoosing = false
 while task.wait(1) do
     pcall(function()
         if ClientData.get("pet_char_wrappers") and ClientData.get("pet_char_wrappers")[1] and ClientData.get("pet_char_wrappers")[1].pet_unique ~= selectedPetID then
-            print("Other Pet Found: ", ClientData.get("pet_char_wrappers")[1].char, PetName)
+            print("[0] Other Pet Found: ", ClientData.get("pet_char_wrappers")[1].char, PetName)
             if PetName:match("Egg") then
-                print("Egg Hatched, changing Main Pet..")
+                print("[0] Egg Hatched, changing Main Pet..")
                 MainPet = ClientData.get("pet_char_wrappers")[1].pet_unique
                 selectedPetID = ClientData.get("pet_char_wrappers")[1].pet_unique
             else
                 EquipMainPet(MainPet)
             end
         elseif not ClientData.get("pet_char_wrappers")[1] then
+            print("[0] No Pet Equipped, equipping main pet!")
             EquipMainPet(MainPet)
         end
     end)
@@ -1875,9 +1866,10 @@ while task.wait(1) do
         for taskName, v in pairs(GetPetTasks()) do
             local success, errorMessage = pcall(function()
                 if taskName == "hungry" then
-                    print("[PET] - Hungry task appeared.")
+                    print("[PET] - Hungry task appeared.", "Pet Name:", ClientData.get("pet_char_wrappers")[1].char)
                     _G.Status = "Completing Hungry Task..."
                     HungryTask()
+                    print("[PET] - Hungry Task Completed")
                 elseif taskName == "thirsty" then
                     print("[PET] - Thirsty task appeared.")
                     _G.Status = "Completing Thirsty Task..."
@@ -1907,17 +1899,17 @@ while task.wait(1) do
                     _G.Status = "Completing Pizza Party Task..."
                     PizzaPartyTask()
                 elseif taskName == "dirty" then
-                    print("[PET] - Dirty task appeared.")
+                    print("[PET] - Dirty task appeared. F :", aPetShower, "Pet Name", ClientData.get("pet_char_wrappers")[1].char)
                     _G.Status = "Completing Dirty Task..."
                     DirtyTask()
                 elseif taskName == "sleepy" then
-                    print("[PET] - Sleepy task appeared.")
+                    print("[PET] - Sleepy task appeared. F :", aPetCrib, "Pet Name", ClientData.get("pet_char_wrappers")[1].char)
                     _G.Status = "Completing Sleepy Task..."
                     SleepyTask()
                 elseif taskName == "toilet" then
-                    print("[PET] - Toilet task appeared.")
+                    print("[PET] - Toilet task appeared. F :", aToilet, "Pet Name", ClientData.get("pet_char_wrappers")[1].char)
                     _G.Status = "Completing Toilet Task..."
-                    ToiletTask()                 
+                    ToiletTask()
                 elseif taskName == "sick" and hasGoldenApple() then
                     print("[PET] - Sick task appeared.")
                     _G.Status = "Completing Sick Task..."
