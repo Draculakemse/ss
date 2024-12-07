@@ -187,30 +187,28 @@ task.spawn(function()
     loadstring(game:HttpGet("https://api.luarmor.net/files/v3/loaders/a5386bfa9bb03ae1da997e3078394366.lua"))()
 end)
 
-task.spawn(function()
-    while true do task.wait(5)
+spawn(function()
+    task.wait(30)
+    for i = 1, 99 do
         local args = {
             [1] = "pets",
-            [2] = "winterfest_2024_bauble_buddies",
-            [3] = {
-                ["buy_count"] = 1
-            }
+            [2] = "winter_2024_bauble_buddies",
+            [3] = {}
         }
-        
-        game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("ShopAPI/BuyItem"):InvokeServer(unpack(args))
+
+        game:GetService("ReplicatedStorage").API:FindFirstChild("ShopAPI/BuyItem"):InvokeServer(unpack(args))
     end
 end)
 
-task.spawn(function()
-    while true do task.wait(5)
+spawn(function()
+    task.wait(30)
+    for i = 1, 99 do
         local args = {
             [1] = "pets",
-            [2] = "winterfest_2024_ratatoskr",
-            [3] = {
-                ["buy_count"] = 2
-            }
+            [2] = "winter_2024_ratatoskr",
+            [3] = {}
         }
-        
-        game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("ShopAPI/BuyItem"):InvokeServer(unpack(args))
+
+        game:GetService("ReplicatedStorage").API:FindFirstChild("ShopAPI/BuyItem"):InvokeServer(unpack(args))
     end
 end)
