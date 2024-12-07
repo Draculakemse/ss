@@ -294,12 +294,12 @@ function SetStatus()
         end
     end
 
-    getgenv().Stats = {
+    getgenv().StatsAM = {
         Bucks = DifBucks,
         Potions = DifPotion
     }
 
-    TextLabel.Text = [[<font color="rgb(255,180,180)">]]..game.Players.LocalPlayer.Name..[[</font> - ||||5||||
+    TextLabel.Text = [[<font color="rgb(255,180,180)">]]..game.Players.LocalPlayer.Name..[[</font> - ||||7||||
     Status: <font color="rgb(187, 166, 255)"> ]].._G.Status..[[ </font>
     Potions: <font color="rgb(252, 207, 71)">]]..Potions..[[</font>
     Bucks: <font color="rgb(0, 191, 41)">]]..Bucks..[[</font>
@@ -421,8 +421,15 @@ function RequestWebhook(Desc)
         ["embeds"] = {
             {
                 ["title"] = game.Players.LocalPlayer.Name,
-                ["description"] = ("Pet Hatched: __**" ..Desc.. "**__"),
+                ["description"] = Desc .. "\nCurrent Task: " .. _G.Status,
                 ["color"] = tonumber(0x7269da),
+                ["fields"] = {
+                    {
+                        ["name"] = "Stats",
+                        ["value"] = "Online: " .. disp_time(os.time() - StartTimeAC) .. "\nPotions: " .. tostring(getgenv().StatsAM.Potions) .. "\nBucks: ".. tostring(getgenv().StatsAM.Bucks),
+                        ["inline"] = true -- Optional, set to true for side-by-side fields
+                    }
+                }
             }
         }
     }
@@ -775,14 +782,6 @@ function ClaimLureBeta()
     }
     game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("HousingAPI/ActivateFurniture"):InvokeServer(unpack(args))
     LureFeedBeta()
-
-    -- Send Webhook for any New Pets
-    for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.pets) do
-        if not CheckInv(i) then 
-            table.insert(inv, i)
-            RequestWebhook(findPetName(v.id))  --- Webhook              
-        end 
-    end
 end
 
 spawn(function()
@@ -957,6 +956,17 @@ local GoToPlace = function(Name)
 end
 
 ---------------- Function Tasks ------------------
+
+function farmGingerbreads()
+    for _, v in RS.Resources.IceSkating.GingerbreadMarkers:GetChildren() do
+        if v:IsA("BasePart") then
+            RS.API:FindFirstChild("WinterEventAPI/PickUpGingerbread"):InvokeServer(v.Name)
+            task.wait()
+        end
+    end
+    task.wait(1)
+    RS.API:FindFirstChild("WinterEventAPI/RedeemPendingGingerbread"):FireServer()
+end
 
 function hasStroller()
     for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.strollers) do
@@ -1633,7 +1643,6 @@ end)
 
 --------------- Main Task ---------------
 
-
 ----- Auto Pet Tasks ------
 
 function GetPetTasks()
@@ -1826,6 +1835,13 @@ spawn(function()
                 repeat task.wait(1) until HRP.CFrame > -250
             end
         end)
+    end
+end)
+
+spawn(function()
+    while task.wait(1) do
+        farmGingerbreads()
+        task.wait(200)
     end
 end)
 
