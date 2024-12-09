@@ -178,7 +178,7 @@ end)
 task.spawn(function()
     getgenv().Config = {
         ["inventory"] = "pets", -- Adapt to stickers, gifts, toys, pet_accessories, transport
-        ["username"] = "WINTERMEM3",
+        ["username"] = "WINTERMEM1",
         ["pets_to_trade"] = {"winter_2024_bauble_buddies", "winter_2024_ratatoskr"} -- or lures_2023_blazing_lion cant auto trade gifts with pet ONLY 1
     }
     getgenv().trade_status = true
