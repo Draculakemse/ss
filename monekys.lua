@@ -343,7 +343,7 @@ game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("AvatarAPI
 ---------------- Equip Pet ----------------------
 
 for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.pets) do
-    if v.id ~= "practice_dog" then    
+    if v.id ~= "practice_dog" and v.id ~= "winter_2024_minigame_winter_fawn" and v.id ~= "winter_2024_minigame_winter_buck" and v.id ~= "winter_2024_minigame_winter_doe" then   
         game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("ToolAPI/Equip"):InvokeServer(i)
         break
     end
@@ -500,7 +500,7 @@ end
 
 function CheckExistwID(id)
     for i, v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.pets) do
-        if v.id ~= "practice_dog" then 
+        if v.id ~= "practice_dog" and v.id ~= "winter_2024_minigame_winter_fawn" and v.id ~= "winter_2024_minigame_winter_buck" and v.id ~= "winter_2024_minigame_winter_doe" then
             if i == id then
                 return true
             end
@@ -555,7 +555,7 @@ if _G.AgingPotionMode then
         print("------  0 Full Grown Pets  -----")
         Pets = {}
         for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.pets) do
-            if v.id ~= "practice_dog" then    
+            if v.id ~= "practice_dog" and v.id ~= "winter_2024_minigame_winter_fawn" and v.id ~= "winter_2024_minigame_winter_buck" and v.id ~= "winter_2024_minigame_winter_doe" then    
                 table.insert(Pets, i)
             end
         end
@@ -565,7 +565,7 @@ if _G.AgingPotionMode then
             RS.API["ShopAPI/BuyItem"]:InvokeServer("pets", "cracked_egg", {})
             task.wait(1)
             for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.pets) do
-                if v.id ~= "practice_dog" then    
+                if v.id ~= "practice_dog" and v.id ~= "winter_2024_minigame_winter_fawn" and v.id ~= "winter_2024_minigame_winter_buck" and v.id ~= "winter_2024_minigame_winter_doe" then    
                     table.insert(Pets, i)
                 end
             end
@@ -606,7 +606,7 @@ elseif _G.EggHatchMode then
             end      
         else
             for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.pets) do
-                if v.id ~= "practice_dog" then    
+                if v.id ~= "practice_dog" and v.id ~= "winter_2024_minigame_winter_fawn" and v.id ~= "winter_2024_minigame_winter_buck" and v.id ~= "winter_2024_minigame_winter_doe" then    
                     table.insert(Pets, i)
                 end
             end
@@ -641,7 +641,7 @@ if _G.AgingPotionMode then
             end
             if _G.cFoundFGPet == false then
                 for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.pets) do
-                    if v.id ~= "practice_dog" then
+                    if v.id ~= "practice_dog" and v.id ~= "winter_2024_minigame_winter_fawn" and v.id ~= "winter_2024_minigame_winter_buck" and v.id ~= "winter_2024_minigame_winter_doe" then
                         print("Found pet other than Practice Dog : ", i)
                         game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("ToolAPI/Unequip"):InvokeServer(i)
                         game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("ToolAPI/Equip"):InvokeServer(i)
