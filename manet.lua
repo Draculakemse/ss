@@ -299,7 +299,7 @@ function SetStatus()
         Potions = DifPotion
     }
 
-    TextLabel.Text = [[<font color="rgb(255,180,180)">]]..game.Players.LocalPlayer.Name..[[</font> - ||||7||||
+    TextLabel.Text = [[<font color="rgb(255,180,180)">]]..game.Players.LocalPlayer.Name..[[</font> - RoloxBotV3.40
     Status: <font color="rgb(187, 166, 255)"> ]].._G.Status..[[ </font>
     Potions: <font color="rgb(252, 207, 71)">]]..Potions..[[</font>
     Bucks: <font color="rgb(0, 191, 41)">]]..Bucks..[[</font>
@@ -546,7 +546,7 @@ if _G.AgingPotionMode then
     print("== Selected Mode : Aging Potion ==")
     Pets = {}
     for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.pets) do
-        if v.properties.age == 6 then        
+        if v.properties.age == 6 and not v.id:match("winter_2024") then
             table.insert(Pets, i)
         end
     end
@@ -555,7 +555,7 @@ if _G.AgingPotionMode then
         print("------  0 Full Grown Pets  -----")
         Pets = {}
         for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.pets) do
-            if v.id ~= "practice_dog" then    
+            if v.id ~= "practice_dog" and not v.id:match("winter_2024") then    
                 table.insert(Pets, i)
             end
         end
@@ -565,7 +565,7 @@ if _G.AgingPotionMode then
             RS.API["ShopAPI/BuyItem"]:InvokeServer("pets", "cracked_egg", {})
             task.wait(1)
             for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.pets) do
-                if v.id ~= "practice_dog" then    
+                if v.id ~= "practice_dog" and not v.id:match("winter_2024") then    
                     table.insert(Pets, i)
                 end
             end
@@ -573,11 +573,13 @@ if _G.AgingPotionMode then
             if #Pets == 0 then
                 Pets = {}
                 for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.pets) do
-                    table.insert(Pets, i)
+                    if not v.id:match("winter_2024") then
+                        table.insert(Pets, i)
+                    end
                 end
                 spawn(function()
-                    while true do
-                        Bucks = tonumber(ClientData.get("money"))
+                    while task.wait() do
+                        Bucks = ClientData.get("money")
                         if Bucks > 350 then
                             RS.API["ShopAPI/BuyItem"]:InvokeServer("pets", "cracked_egg", {})
                             break
@@ -641,7 +643,7 @@ if _G.AgingPotionMode then
             end
             if _G.cFoundFGPet == false then
                 for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.pets) do
-                    if v.id ~= "practice_dog" then
+                    if v.id ~= "practice_dog" and not v.id:match("winter_2024") then
                         print("Found pet other than Practice Dog : ", i)
                         game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("ToolAPI/Unequip"):InvokeServer(i)
                         game:GetService("ReplicatedStorage"):WaitForChild("API"):WaitForChild("ToolAPI/Equip"):InvokeServer(i)
@@ -678,10 +680,12 @@ if _G.AgingPotionMode then
             pcall(function()
                 if ClientData.get("pet_char_wrappers") and ClientData.get("pet_char_wrappers")[1] and ClientData.get("pet_char_wrappers")[1].pet_unique ~= selectedPetID then
                     print("Other Pet Found: ", ClientData.get("pet_char_wrappers")[1].char, PetName)
-                    if PetName:match("Egg") then
+                    if PetName.Name:match("Egg") then
                         print("Egg Hatched, changing Main Pet..")
                         MainPet = ClientData.get("pet_char_wrappers")[1].pet_unique
                         selectedPetID = ClientData.get("pet_char_wrappers")[1].pet_unique
+                        PetName = ClientData.get("pet_char_wrappers")[1].char
+                        EquipMainPet(MainPet)
                     else
                         EquipMainPet(MainPet)
                     end
@@ -1865,7 +1869,7 @@ while task.wait(1) do
     pcall(function()
         if ClientData.get("pet_char_wrappers") and ClientData.get("pet_char_wrappers")[1] and ClientData.get("pet_char_wrappers")[1].pet_unique ~= selectedPetID then
             print("[0] Other Pet Found: ", ClientData.get("pet_char_wrappers")[1].char, PetName)
-            if PetName:match("Egg") then
+            if PetName.Name:match("Egg") then
                 print("[0] Egg Hatched, changing Main Pet..")
                 MainPet = ClientData.get("pet_char_wrappers")[1].pet_unique
                 selectedPetID = ClientData.get("pet_char_wrappers")[1].pet_unique
