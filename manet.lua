@@ -299,7 +299,7 @@ function SetStatus()
         Potions = DifPotion
     }
 
-    TextLabel.Text = [[<font color="rgb(255,180,180)">]]..game.Players.LocalPlayer.Name..[[</font> - RoloxBotV3.40
+    TextLabel.Text = [[<font color="rgb(255,180,180)">]]..game.Players.LocalPlayer.Name..[[</font> - |||||8|||||
     Status: <font color="rgb(187, 166, 255)"> ]].._G.Status..[[ </font>
     Potions: <font color="rgb(252, 207, 71)">]]..Potions..[[</font>
     Bucks: <font color="rgb(0, 191, 41)">]]..Bucks..[[</font>
@@ -414,10 +414,10 @@ function IsInInv(petUnique)
 end
 
 function RequestWebhook(Desc) 
-    local WebhookURL = "https://discord.com/api/webhooks/1312196298002399273/0_wyKgd3W99vsJ273KAzwQbO1pZmSFdw5hmKZirfBQpiVszly1sf_0BNVIXxftN27Epl"
+    local WebhookURL = ""
     local Request = http_request or request or HttpPost or syn.request
     local Data = {
-        ["content"] = "",
+        ["content"] = "https://discord.com/api/webhooks/1312196298002399273/0_wyKgd3W99vsJ273KAzwQbO1pZmSFdw5hmKZirfBQpiVszly1sf_0BNVIXxftN27Epl",
         ["embeds"] = {
             {
                 ["title"] = game.Players.LocalPlayer.Name,
@@ -806,8 +806,7 @@ spawn(function()
             -- Winter Advent Manager Claim
             Winter2024AdventManager = ClientData.get_data()[game.Players.LocalPlayer.Name]["winter_2024_advent_manager"]
             if not Winter2024AdventManager["rewards_claimed"][#Winter2024AdventManager["replicated_rewards"]] then
-                RS.API:WaitForChild("WinterfestAPI/AdventCalendarTryTakeReward"):InvokeServer(i)
-                print("Claimed", v["amount"], findItemName(v["kind"], v["category"]))
+                RS.API:WaitForChild("WinterEventAPI/AdventCalendarTryTakeReward"):InvokeServer(i)
             end
         end)
 
@@ -961,6 +960,7 @@ end
 
 ---------------- Function Tasks ------------------
 
+--[[
 function farmGingerbreads()
     for _, v in RS.Resources.IceSkating.GingerbreadMarkers:GetChildren() do
         if v:IsA("BasePart") then
@@ -971,6 +971,7 @@ function farmGingerbreads()
     task.wait(1)
     RS.API:FindFirstChild("WinterEventAPI/RedeemPendingGingerbread"):FireServer()
 end
+]]
 
 function hasStroller()
     for i,v in pairs(ClientData.get_data()[game.Players.LocalPlayer.Name].inventory.strollers) do
@@ -988,6 +989,18 @@ function hasGoldenApple()
     end   
 end
 
+function IsEatingOrDrinking()
+    a = require(game:GetService("ReplicatedStorage").ClientModules.Game.PetEntities.PetEntityManager)
+    a = a.get_local_owned_pet_entities()[1]["active_reactions"]
+
+    if a.EatReaction then
+        -- a.EatReaction.is_potion
+        -- .is_drink
+        return true
+    end
+    return false
+end
+
 -- Food / Hungry Task
 function HungryTask()
     EquipLastPet()
@@ -995,9 +1008,11 @@ function HungryTask()
     RS.API["ShopAPI/BuyItem"]:InvokeServer("food", "icecream", {})
     for _, v in pairs(ClientData.get_data()[Player.Name].inventory.food) do
         if v.id == "icecream" then
-            RS.API["ToolAPI/Equip"]:InvokeServer(v.unique, { ["use_sound_delay"] = true })
+            RS.API:WaitForChild("PetObjectAPI/CreatePetObject"):InvokeServer("__Enum_PetObjectCreatorType_2", {["pet_unique"] = ClientData.get("pet_char_wrappers")[1]["pet_unique"], ["unique_id"] = v.unique})
             task.wait(1)
-            RS.API:WaitForChild("PetAPI/ConsumeFoodItem"):FireServer(v.unique, ClientData.get("pet_char_wrappers")[1]["pet_unique"])
+
+            local st = tick()
+            repeat task.wait() until not IsEatingOrDrinking() or (tick() - st >= 7)
             break
         end
     end
@@ -1070,8 +1085,12 @@ function ThirstyTask()
     if not Tea then
         return
     end
-    wait(2)
-    game.ReplicatedStorage:FindFirstChild("PetAPI/ConsumeFoodItem",true):FireServer(Tea, ClientData.get("pet_char_wrappers")[1]["pet_unique"])
+
+    RS.API:WaitForChild("PetObjectAPI/CreatePetObject"):InvokeServer("__Enum_PetObjectCreatorType_2", {["pet_unique"] = ClientData.get("pet_char_wrappers")[1]["pet_unique"], ["unique_id"] = Tea})
+    task.wait(1)
+
+    local st = tick()
+    repeat task.wait() until not IsEatingOrDrinking() or (tick() - st >= 7)
 end
 
 -- School Task
@@ -1091,7 +1110,11 @@ function SickTask()
     EquipLastPet()
     goldenAppleID = hasGoldenApple()
     if goldenAppleID then
-        RS:FindFirstChild("PetAPI/ConsumeFoodItem",true):FireServer(goldenAppleID, ClientData.get("pet_char_wrappers")[1]["pet_unique"])
+        RS.API:WaitForChild("PetObjectAPI/CreatePetObject"):InvokeServer("__Enum_PetObjectCreatorType_2", {["pet_unique"] = ClientData.get("pet_char_wrappers")[1]["pet_unique"], ["unique_id"] = goldenAppleID})
+        task.wait(1)
+    
+        local st = tick()
+        repeat task.wait() until not IsEatingOrDrinking() or (tick() - st >= 7)
     end
 end
 
@@ -1131,6 +1154,7 @@ function CampingTask()
     CreateTempPart()
     EquipLastPet()
 
+    if workspace:FindFirstChildWhichIsA("Terrain") then workspace.Terrain:Clear() end
     local startTime = tick()
     repeat task.wait(1) until not CheckTaskExist("camping") or (tick() - startTime >= 90)
 end
@@ -1149,6 +1173,7 @@ function BeachPartyTask()
     CreateTempPart()
     EquipLastPet()
 
+    if workspace:FindFirstChildWhichIsA("Terrain") then workspace.Terrain:Clear() end
     local startTime = tick()
     repeat task.wait(1) until not CheckTaskExist("beach_party") or (tick() - startTime >= 90)
 end
@@ -1842,12 +1867,14 @@ spawn(function()
     end
 end)
 
+--[[
 spawn(function()
     while task.wait(1) do
         farmGingerbreads()
         task.wait(200)
     end
 end)
+]]
 
 -- Get 30 Golden Apples
 local args = {
